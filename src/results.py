@@ -37,12 +37,12 @@ def get_cm(y_true, y_pred, pct=False):
 def plot_cm(y_true, y_pred, labels, pct=False):
     import seaborn as sns
     cm = get_cm(y_true, y_pred, pct=pct)
-    fig = plt.figure(figsize=(20,15))
+    fig = plt.figure(figsize=(30, 15))
     if pct:
-        sns.heatmap(cm, annot=True, fmt='.2f',
+        sns.heatmap(cm, annot=False, fmt='.2f',
                     xticklabels=labels, yticklabels=labels)
     else:
-        sns.heatmap(cm, annot=True, fmt='d',
+        sns.heatmap(cm, annot=False, fmt='d',
                     xticklabels=labels, yticklabels=labels)
         
     plt.ylabel('Actual')
@@ -67,3 +67,16 @@ def save_params(out_path, **kwargs):
 def write_summary(model, out_path):
     with open(os.path.join(out_path, 'summary.txt'), 'w') as f:
         model.summary(print_fn=lambda x: f.write(x + '\n'))
+
+def generate_report(model, X_val, y_val, output_path):
+
+    y_prob = model.predict(X_val, verbose=0)
+    y_pred = np.argmax(y_prob, axis=1)
+
+    # fig = plot_cm(y_val, y_pred, labels=config.LABELS)
+    # fig.savefig(os.path.join(output_path, 'confusion_matrix.jpg'))
+
+    fig = plot_cm(y_val, y_pred, labels=config.LABELS, pct=True)
+    fig.savefig(os.path.join(output_path, 'confusion_matrix_pct.jpg'))
+
+    report = class_report(y_val, y_pred, out_path=output_path)

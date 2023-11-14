@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 import time
+import shutil
 
 from tensorflow import keras
 np.random.seed(0)
@@ -13,9 +14,10 @@ np.random.seed(0)
 import src.config as config
 from src.dataloader import read_train, read_val
 from src.preprocessing import CustomDataGenerator
-from src.results import plot_history, plot_history_logloss, plot_cm, class_report,\
+from src.results import plot_history_logloss, generate_report,\
                             save_params, write_summary
 from src.utils import setup_logger, header
+from src.results import generate_report
 import argparse
 from keras.regularizers import l2,l1,l1_l2
 
@@ -68,6 +70,10 @@ X_val, y_val = read_val(path=PARTITION_FOLDER)
 logger.info(f"VALIDATION SIZE: {X_val.shape}")
 logger.info(f"NUMBER OF CLASSES: {np.unique(y_val).shape[0]}")
 
+X_test, y_test = read_val(path=PARTITION_FOLDER)
+logger.info(f"TEST SIZE: {X_test.shape}")
+logger.info(f"NUMBER OF CLASSES: {np.unique(y_test).shape[0]}")
+
 ## Define architecture
 logger.info(header('DEFINE MODEL'))
 
@@ -104,29 +110,23 @@ model.save(model_file)
 logger.info(header('WRITE'))
 logger.info(f"Write model in: {model_file}")
 
+
 fig = plot_history_logloss(model)
-fig.savefig(os.path.join(OUTPUT_FOLDER, f'history_{EVENTNAME}.png'))
+fig.savefig(os.path.join(OUTPUT_FOLDER, f'history.png'))
 
-y_prob = model.predict(X_val, verbose=0)
-y_pred = np.argmax(y_prob, axis=1)
 
-fig = plot_cm(y_val, y_pred, labels=config.LABELS)
-fig.savefig(os.path.join(OUTPUT_FOLDER, 'confusion_matrix.jpg'))
+folder_suffix = ["train", "val", "test"]
 
-fig = plot_cm(y_val, y_pred, labels=config.LABELS, pct=True)
-fig.savefig(os.path.join(OUTPUT_FOLDER, 'confusion_matrix_pct.jpg'))
+for suff in folder_suffix:
+    path = os.path.join(OUTPUT_FOLDER, suff)
+    if os.path.exists(path):
+        shutil.rmtree(path)
 
-report = class_report(y_val, y_pred, out_path=OUTPUT_FOLDER)
+    os.makedirs(path)
 
-acc_train = model.evaluate(X_train, y_train, verbose=0)[1]
-acc_val = model.evaluate(X_val, y_val, verbose=0)[1]
-
-d_results = {"name": EXPNAME,
-             "train_acc": acc_train,
-             "val_acc": acc_val,
-             "time_per_epoch_s": 21}
-
-df_results = pd.DataFrame(d_results, index=[0])
-df_results.to_csv(os.path.join(OUTPUT_FOLDER, 'metrics.csv'), index=False)
+    X = eval(f"X_{suff}")
+    y = eval(f"y_{suff}")
+    logger.info(header(f"{suff.upper()} dataset"))
+    generate_report(model, X, y, path)
 
 logger.info(header('END'))
