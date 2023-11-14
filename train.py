@@ -73,7 +73,7 @@ logger.info(header('DEFINE MODEL'))
 
 layers = [
             keras.Input(shape=(config.IMG_SIZE, config.IMG_SIZE, config.N_CHANNELS)),
-            keras.layers.Conv2D(32,(3,3), activation = 'relu'),
+            keras.layers.Conv2D(16,(3,3), activation = 'relu'),
             keras.layers.MaxPooling2D(pool_size = (2, 2)),
             keras.layers.BatchNormalization(),
 
