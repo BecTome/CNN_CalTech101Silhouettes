@@ -4,19 +4,22 @@ import numpy as np
 import scipy.io as io
 from sklearn.model_selection import train_test_split
 
-def read_train(path):
+def read_train(path,):
     train_data = io.loadmat(os.path.join(path, "train", 'train_data.mat'))
     X_train, y_train = train_data['X'], train_data['y']
+    y_train = y_train - np.min(y_train)
     return X_train, y_train
 
 def read_val(path):
     val_data = io.loadmat(os.path.join(path, "val", 'val_data.mat'))
     X_val, y_val = val_data['X'], val_data['y']
+    y_val = y_val - np.min(y_val)
     return X_val, y_val
 
 def read_test(path):
     test_data = io.loadmat(os.path.join(path, "test", 'test_data.mat'))
     X_test, y_test = test_data['X'], test_data['y']
+    y_test = y_test - np.min(y_test)
     return X_test, y_test
 
 def create_partition(input_path, val_ratio, test_ratio, output_path, seed=42):
