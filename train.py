@@ -5,8 +5,9 @@
 import os
 import numpy as np
 import pandas as pd
-import time
 import shutil
+import matplotlib.pyplot as plt
+
 
 from tensorflow import keras
 np.random.seed(0)
@@ -121,8 +122,9 @@ model.save(model_file)
 logger.info(header('WRITE'))
 logger.info(f"Write model in: {model_file}")
 
-
 fig = plot_history(model)
+plt.suptitle(f"Learning rate: {LEARNING_RATE} - Batch Size: {BATCH_SIZE}"
+             f" - Partition: {PARTITION.replace(r'_', r'-')}", fontsize=16)
 fig.savefig(os.path.join(OUTPUT_FOLDER, f'history.png'))
 
 
