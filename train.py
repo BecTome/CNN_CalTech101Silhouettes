@@ -14,7 +14,7 @@ np.random.seed(0)
 import src.config as config
 from src.dataloader import read_train, read_val
 from src.preprocessing import CustomDataGenerator
-from src.results import plot_history_logloss, generate_report,\
+from src.results import plot_history, generate_report,\
                             save_params, write_summary
 from src.utils import setup_logger, header
 from src.results import generate_report
@@ -79,17 +79,22 @@ logger.info(header('DEFINE MODEL'))
 
 layers = [
             keras.Input(shape=(config.IMG_SIZE, config.IMG_SIZE, config.N_CHANNELS)),
-            keras.layers.Conv2D(16,(3,3), activation = 'relu'),
+            keras.layers.Conv2D(32,(3,3), activation = 'relu'),
             keras.layers.MaxPooling2D(pool_size = (2, 2)),
-            keras.layers.BatchNormalization(),
+
+            keras.layers.Conv2D(64,(3,3), activation = 'relu'),
+            keras.layers.MaxPooling2D(pool_size = (2, 2)),
+
+            keras.layers.Conv2D(128,(3,3), activation = 'relu'),
+            keras.layers.Conv2D(256,(3,3), activation = 'relu'),
 
             keras.layers.Flatten(),
-            keras.layers.Dense(64, activation='relu'),
+            keras.layers.Dense(512, activation='relu'),
+            keras.layers.Dense(256, activation='relu'),
             keras.layers.Dense(output_shape, activation='softmax')
 ]
 
 model = keras.Sequential(layers)
-
 
 model.compile(optimizer=keras.optimizers.legacy.Adam(learning_rate=LEARNING_RATE),
               loss='sparse_categorical_crossentropy',
@@ -102,7 +107,13 @@ logger.info(header('TRAINING DATA'))
 train_generator = CustomDataGenerator(X_train, y_train, batch_size=BATCH_SIZE)
 print(type(X_train))
 
-model.fit(train_generator, epochs=EPOCHS, validation_data=(X_val, y_val))
+from keras.callbacks import EarlyStopping
+early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10)
+
+model.fit(train_generator, epochs=EPOCHS, 
+          validation_data=(X_val, y_val), 
+          callbacks=[early_stopping])
+
 model_file = os.path.join(OUTPUT_FOLDER, f'model.h5')
 model.save(model_file)
 
@@ -111,7 +122,7 @@ logger.info(header('WRITE'))
 logger.info(f"Write model in: {model_file}")
 
 
-fig = plot_history_logloss(model)
+fig = plot_history(model)
 fig.savefig(os.path.join(OUTPUT_FOLDER, f'history.png'))
 
 
