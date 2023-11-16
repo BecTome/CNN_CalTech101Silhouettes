@@ -13,7 +13,7 @@ from tensorflow import keras
 np.random.seed(0)
 
 import src.config as config
-from src.dataloader import read_train, read_val
+from src.dataloader import read_train, read_val, read_test
 from src.preprocessing import CustomDataGenerator
 from src.results import plot_history, generate_report,\
                             save_params, write_summary
@@ -71,7 +71,7 @@ X_val, y_val = read_val(path=PARTITION_FOLDER)
 logger.info(f"VALIDATION SIZE: {X_val.shape}")
 logger.info(f"NUMBER OF CLASSES: {np.unique(y_val).shape[0]}")
 
-X_test, y_test = read_val(path=PARTITION_FOLDER)
+X_test, y_test = read_test(path=PARTITION_FOLDER)
 logger.info(f"TEST SIZE: {X_test.shape}")
 logger.info(f"NUMBER OF CLASSES: {np.unique(y_test).shape[0]}")
 
@@ -109,7 +109,8 @@ train_generator = CustomDataGenerator(X_train, y_train, batch_size=BATCH_SIZE)
 print(type(X_train))
 
 from keras.callbacks import EarlyStopping
-early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10)
+early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=7,
+                               verbose=0, mode='auto', restore_best_weights=False)
 
 model.fit(train_generator, epochs=EPOCHS, 
           validation_data=(X_val, y_val), 

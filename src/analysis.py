@@ -71,7 +71,8 @@ def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None
 def save_and_display_gradcam(img_arr, heatmap, cam_path=None, alpha=0.4):
  
     img = img_arr.copy()
-
+    img = np.uint8(255 * img)
+    
     # Rescale heatmap to a range 0-255
     heatmap = np.uint8(255 * heatmap)
     # Use jet colormap to colorize heatmap
@@ -89,7 +90,7 @@ def save_and_display_gradcam(img_arr, heatmap, cam_path=None, alpha=0.4):
     img = img.reshape((img.shape[0], img.shape[1]))
     img = np.stack([img, img, img], axis=-1)
     # Superimpose the heatmap on original image
-    superimposed_img = jet_heatmap
+    superimposed_img = jet_heatmap * alpha + img * (1 - alpha)
     superimposed_img = keras.utils.array_to_img(superimposed_img)
 
     if cam_path is not None:
