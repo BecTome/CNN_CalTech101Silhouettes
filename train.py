@@ -5,9 +5,9 @@
 import os
 import numpy as np
 import pandas as pd
+import time
 import shutil
 import matplotlib.pyplot as plt
-
 
 from tensorflow import keras
 np.random.seed(0)
@@ -15,7 +15,7 @@ np.random.seed(0)
 import src.config as config
 from src.dataloader import read_train, read_val, read_test
 from src.preprocessing import CustomDataGenerator
-from src.results import plot_history, generate_report,\
+from src.results import plot_history, plot_history_logloss, generate_report,\
                             save_params, write_summary
 from src.utils import setup_logger, header
 from src.results import generate_report
@@ -71,7 +71,7 @@ X_val, y_val = read_val(path=PARTITION_FOLDER)
 logger.info(f"VALIDATION SIZE: {X_val.shape}")
 logger.info(f"NUMBER OF CLASSES: {np.unique(y_val).shape[0]}")
 
-X_test, y_test = read_test(path=PARTITION_FOLDER)
+X_test, y_test = read_test  (path=PARTITION_FOLDER)
 logger.info(f"TEST SIZE: {X_test.shape}")
 logger.info(f"NUMBER OF CLASSES: {np.unique(y_test).shape[0]}")
 
@@ -80,24 +80,28 @@ logger.info(header('DEFINE MODEL'))
 
 layers = [
             keras.Input(shape=(config.IMG_SIZE, config.IMG_SIZE, config.N_CHANNELS)),
-            keras.layers.Conv2D(32,(3,3), activation = 'relu'),
+            keras.layers.Conv2D(32,(3,3), activation = 'relu', 
+                                kernel_regularizer=keras.regularizers.l2(0.9)),
             keras.layers.MaxPooling2D(pool_size = (2, 2)),
-
-            keras.layers.Conv2D(64,(3,3), activation = 'relu'),
+            keras.layers.BatchNormalization(),
+            keras.layers.Conv2D(64,(3,3), activation = 'relu', 
+                                kernel_regularizer=keras.regularizers.l2(0.9)),
             keras.layers.MaxPooling2D(pool_size = (2, 2)),
-
-            keras.layers.Conv2D(128,(3,3), activation = 'relu'),
-            keras.layers.Conv2D(256,(3,3), activation = 'relu'),
+            keras.layers.BatchNormalization(),
+            keras.layers.Conv2D(128,(3,3), activation = 'relu', 
+                                kernel_regularizer=keras.regularizers.l2(0.9)),
+            keras.layers.BatchNormalization(),
 
             keras.layers.Flatten(),
+            keras.layers.Dense(1024, activation='relu'),
+            keras.layers.Dropout(0.9),
             keras.layers.Dense(512, activation='relu'),
-            keras.layers.Dense(256, activation='relu'),
             keras.layers.Dense(output_shape, activation='softmax')
 ]
 
 model = keras.Sequential(layers)
 
-model.compile(optimizer=keras.optimizers.legacy.Adam(learning_rate=LEARNING_RATE),
+model.compile(optimizer=keras.optimizers.Adam(learning_rate=LEARNING_RATE),
               loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
 
@@ -109,10 +113,11 @@ train_generator = CustomDataGenerator(X_train, y_train, batch_size=BATCH_SIZE)
 print(type(X_train))
 
 from keras.callbacks import EarlyStopping
-early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=7,
-                               verbose=0, mode='auto', restore_best_weights=False)
+early_stopping = EarlyStopping(monitor='val_accuracy', min_delta=0.01, patience=20, restore_best_weights=True)
 
-model.fit(train_generator, epochs=EPOCHS, 
+model.fit(train_generator,
+          batch_size=BATCH_SIZE,
+          epochs=EPOCHS, 
           validation_data=(X_val, y_val), 
           callbacks=[early_stopping])
 
@@ -123,7 +128,8 @@ model.save(model_file)
 logger.info(header('WRITE'))
 logger.info(f"Write model in: {model_file}")
 
-fig = plot_history(model)
+
+fig = plot_history_logloss(model)
 plt.suptitle(f"Learning rate: {LEARNING_RATE} - Batch Size: {BATCH_SIZE}"
              f" - Partition: {PARTITION.replace(r'_', r'-')}", fontsize=16)
 fig.savefig(os.path.join(OUTPUT_FOLDER, f'history.png'))
